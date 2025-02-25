@@ -60,7 +60,7 @@ if st.button("Generate Images", type="primary"):
             progress_bar.progress((i+1)/num_images)
             
             # Generate single image per API call
-            image = client.text_to_image(
+            result = client.text_to_image(
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-dev",
                 negative_prompt=negative_prompt if negative_prompt else None,
@@ -69,16 +69,23 @@ if st.button("Generate Images", type="primary"):
                 width=width,
                 num_inference_steps=steps
             )
-            images.append(image)
+            
+            # Convert PIL Image to bytes
+            if isinstance(result, Image.Image):
+                img_byte_arr = io.BytesIO()
+                result.save(img_byte_arr, format='PNG')
+                image_bytes = img_byte_arr.getvalue()
+            else:
+                image_bytes = result
+            
+            images.append(image_bytes)
             
             # Display each image as it's generated
             with st.expander(f"Image {i+1}", expanded=True):
-                st.image(image, use_container_width=True)
-                buf = io.BytesIO()
-                Image.open(io.BytesIO(image)).save(buf, format="PNG")
+                st.image(image_bytes, use_container_width=True)
                 st.download_button(
                     label="Download",
-                    data=buf.getvalue(),
+                    data=image_bytes,
                     file_name=f"flux_{prompt[:20]}_{i+1}.png",
                     mime="image/png",
                     key=f"download_{i}"
@@ -122,14 +129,12 @@ if st.session_state.history:
             st.write(f"**Parameters:** Guidance {gen['params']['guidance_scale']}, Steps {gen['params']['steps']}, Size {gen['params']['size']}")
             
             hist_cols = st.columns(len(gen['images']))
-            for idx, (col, img) in enumerate(zip(hist_cols, gen['images'])):
+            for idx, (col, img_bytes) in enumerate(zip(hist_cols, gen['images'])):
                 with col:
-                    st.image(img, use_container_width=True)
-                    buf = io.BytesIO()
-                    Image.open(io.BytesIO(img)).save(buf, format="PNG")
+                    st.image(img_bytes, use_container_width=True)
                     st.download_button(
                         label="Download",
-                        data=buf.getvalue(),
+                        data=img_bytes,
                         file_name=f"hist_{gen['timestamp']}_{idx+1}.png",
                         mime="image/png",
                         key=f"hist_dl_{gen['timestamp']}_{idx}"

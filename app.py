@@ -3,7 +3,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image
 
 # Set up the app title and icon
-st.set_page_config(page_title="Text to Image Generator", page_icon="🎨")
+st.set_page_config(page_title="FLUX.1 Text to Image", page_icon="🌌")
 
 # Initialize Hugging Face Inference client
 def get_client():
@@ -16,11 +16,11 @@ def get_client():
 client = get_client()
 
 # App UI
-st.title("🎨 Text to Image Generator")
-st.write("Transform your text prompts into images using Stable Diffusion!")
+st.title("🌌 FLUX.1 Text to Image Generator")
+st.write("Transform text into images using the powerful FLUX.1 model!")
 
 # Input parameters
-prompt = st.text_input("Enter your prompt (e.g.: 'A futuristic cityscape at sunset')", 
+prompt = st.text_input("Enter your prompt (e.g.: 'Cyberpunk samurai in neon rain')", 
                       placeholder="Describe the image you want to generate...")
 negative_prompt = st.text_input("Negative prompt (optional)", 
                                placeholder="What to exclude from the image...")
@@ -44,6 +44,7 @@ if st.button("Generate Image", type="primary"):
         try:
             image = client.text_to_image(
                 prompt=prompt,
+                model="black-forest-labs/FLUX.1-dev",  # Specific model added here
                 negative_prompt=negative_prompt if negative_prompt else None,
                 guidance_scale=guidance_scale,
                 height=height,
@@ -62,7 +63,7 @@ if st.button("Generate Image", type="primary"):
 st.markdown("---")
 st.markdown("""
 **App Info:**
+- Model: [FLUX.1-dev](https://huggingface.co/black-forest-labs/FLUX.1-dev)
 - Powered by [Hugging Face Inference API](https://huggingface.co/inference-api)
-- Using Stable Diffusion model
 - Built with [Streamlit](https://streamlit.io)
 """)

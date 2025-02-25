@@ -3,6 +3,7 @@ from huggingface_hub import InferenceClient
 from PIL import Image
 import io
 from datetime import datetime
+import random  # Added for random seed generation
 
 # Set up the app title and icon
 st.set_page_config(page_title="FLUX.1 Image Generator", page_icon="🌌")
@@ -59,7 +60,10 @@ if st.button("Generate Images", type="primary"):
             status_text.text(f"Generating image {i+1} of {num_images}...")
             progress_bar.progress((i+1)/num_images)
             
-            # Generate single image per API call
+            # Generate unique seed for each image
+            seed = random.randint(0, 2**32 - 1)
+            
+            # Generate single image per API call with unique seed
             result = client.text_to_image(
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-dev",
@@ -67,7 +71,8 @@ if st.button("Generate Images", type="primary"):
                 guidance_scale=guidance_scale,
                 height=height,
                 width=width,
-                num_inference_steps=steps
+                num_inference_steps=steps,
+                seed=seed  # Add unique seed parameter
             )
             
             # Convert PIL Image to bytes
@@ -100,7 +105,8 @@ if st.button("Generate Images", type="primary"):
             "params": {
                 "guidance_scale": guidance_scale,
                 "steps": steps,
-                "size": f"{width}x{height}"
+                "size": f"{width}x{height}",
+                "seeds": [seed]  # Store seeds for reference
             }
         })
         
@@ -115,6 +121,10 @@ if st.button("Generate Images", type="primary"):
         progress_bar.empty()
         status_text.error(f"Error generating image {i+1}: {str(e)}")
         st.stop()
+
+# ... (rest of the code remains the same)
+
+
 
 # Display history
 if st.session_state.history:

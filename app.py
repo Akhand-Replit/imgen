@@ -50,62 +50,64 @@ if st.button("Generate Images", type="primary"):
         st.warning("Please enter a prompt to generate images")
         st.stop()
     
-    with st.spinner(f"Generating {num_images} image(s). This may take 20-60 seconds..."):
-        try:
-            images = client.text_to_image(
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    images = []
+    
+    try:
+        for i in range(num_images):
+            status_text.text(f"Generating image {i+1} of {num_images}...")
+            progress_bar.progress((i+1)/num_images)
+            
+            # Generate single image per API call
+            image = client.text_to_image(
                 prompt=prompt,
                 model="black-forest-labs/FLUX.1-dev",
                 negative_prompt=negative_prompt if negative_prompt else None,
                 guidance_scale=guidance_scale,
                 height=height,
                 width=width,
-                num_inference_steps=steps,
-                num_images_per_prompt=num_images
+                num_inference_steps=steps
             )
+            images.append(image)
             
-            # Handle single image response
-            if not isinstance(images, list):
-                images = [images]
-            
-            # Display generated images
-            st.subheader("Generated Images")
-            cols = st.columns(len(images))
-            for idx, (col, image) in enumerate(zip(cols, images)):
-                with col:
-                    st.image(image, caption=f"Image {idx+1}", use_container_width=True)
-                    
-                    # Create download button
-                    buf = io.BytesIO()
-                    Image.open(io.BytesIO(image)).save(buf, format="PNG")
-                    st.download_button(
-                        label="Download",
-                        data=buf.getvalue(),
-                        file_name=f"flux_{prompt[:20]}_{idx+1}.png",
-                        mime="image/png",
-                        key=f"download_{idx}"
-                    )
-            
-            # Add to history (store last 5 generations)
-            st.session_state.history.append({
-                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "prompt": prompt,
-                "images": images,
-                "params": {
-                    "guidance_scale": guidance_scale,
-                    "steps": steps,
-                    "size": f"{width}x{height}"
-                }
-            })
-            
-            # Keep only last 5 generations
-            if len(st.session_state.history) > 5:
-                st.session_state.history.pop(0)
-            
-            st.success("Generation complete!")
-
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-            st.stop()
+            # Display each image as it's generated
+            with st.expander(f"Image {i+1}", expanded=True):
+                st.image(image, use_container_width=True)
+                buf = io.BytesIO()
+                Image.open(io.BytesIO(image)).save(buf, format="PNG")
+                st.download_button(
+                    label="Download",
+                    data=buf.getvalue(),
+                    file_name=f"flux_{prompt[:20]}_{i+1}.png",
+                    mime="image/png",
+                    key=f"download_{i}"
+                )
+        
+        # Add to history (store last 5 generations)
+        st.session_state.history.append({
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "prompt": prompt,
+            "negative_prompt": negative_prompt,
+            "images": images,
+            "params": {
+                "guidance_scale": guidance_scale,
+                "steps": steps,
+                "size": f"{width}x{height}"
+            }
+        })
+        
+        # Keep only last 5 generations
+        if len(st.session_state.history) > 5:
+            st.session_state.history.pop(0)
+        
+        progress_bar.empty()
+        status_text.success("All images generated successfully!")
+        
+    except Exception as e:
+        progress_bar.empty()
+        status_text.error(f"Error generating image {i+1}: {str(e)}")
+        st.stop()
 
 # Display history
 if st.session_state.history:
